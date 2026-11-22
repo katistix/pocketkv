@@ -1,0 +1,137 @@
+{{define "title"}}{{.Store.Name}} · pocketkv{{end}}
+{{define "content"}}
+<p class="crumbs"><a href="/">Stores</a> /</p>
+<h1>{{.Store.Name}}</h1>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+<h2>Values</h2>
+<div class="row"><a class="button primary" href="/stores/{{.Store.Name}}/value">New value</a></div>
+{{if .Values}}
+<table>
+  <tr><th>Key</th><th>Value</th><th>Size</th><th></th></tr>
+  {{range .Values}}
+  <tr>
+    <td><a href="/stores/{{$.Store.Name}}/value?key={{.Key}}"><code>{{.Key}}</code></a></td>
+    <td class="preview"><code>{{.Preview}}</code></td>
+    <td class="muted">{{.Size}} B</td>
+    <td class="actions">
+      <form class="inline" method="post" action="/stores/{{$.Store.Name}}/value/delete" onsubmit="return confirm('Delete {{.Key}}?')">
+        <input type="hidden" name="key" value="{{.Key}}">
+        <button class="danger" type="submit">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="muted">No values yet.</p>
+{{end}}
+
+<h2 id="keys">Read-only API keys</h2>
+<form method="post" action="/stores/{{.Store.Name}}/keys" class="row">
+  <input type="text" name="label" placeholder="label, e.g. my-blog" maxlength="64" autocomplete="off">
+  <button type="submit">Create API key</button>
+</form>
+{{if .Store.APIKeys}}
+<table>
+  <tr><th>Label</th><th>Key</th><th>Created</th><th></th></tr>
+  {{range .Store.APIKeys}}
+  <tr>
+    <td>{{if .Label}}{{.Label}}{{else}}<span class="muted">—</span>{{end}}</td>
+    <td><code>{{.Key}}</code> <button type="button" onclick="navigator.clipboard.writeText('{{.Key}}'); this.textContent='Copied'">Copy</button></td>
+    <td class="muted">{{.CreatedAt.Format "2006-01-02"}}</td>
+    <td class="actions">
+      <form class="inline" method="post" action="/stores/{{$.Store.Name}}/keys/delete" onsubmit="return confirm('Revoke this key? Sites using it will stop working.')">
+        <input type="hidden" name="key" value="{{.Key}}">
+        <button class="danger" type="submit">Revoke</button>
+      </form>
+    </td>
+  </tr>
+  {{end}}
+</table>
+{{with index .Store.APIKeys 0}}
+<h2>Usage</h2>
+<div class="tabs" id="usage">
+  <div class="tablist" role="tablist">
+    <button type="button" role="tab" data-tab="js" aria-selected="true">JavaScript</button>
+    <button type="button" role="tab" data-tab="html">HTML</button>
+    <button type="button" role="tab" data-tab="curl">curl</button>
+    <button type="button" role="tab" data-tab="python">Python</button>
+    <button type="button" role="tab" data-tab="go">Go</button>
+    <button type="button" class="copy">Copy</button>
+  </div>
+<pre data-panel="js">const headers = { Authorization: "Bearer {{.Key}}" };
+
+// one value
+const value = await fetch("{{$.BaseURL}}/api/v1/values/{{$.SampleKey}}", { headers }).then(r =&gt; r.json());
+
+// every value in the store, as { key: value }
+const all = await fetch("{{$.BaseURL}}/api/v1/values", { headers }).then(r =&gt; r.json());</pre>
+<pre data-panel="html" hidden>&lt;pre id="value"&gt;loading…&lt;/pre&gt;
+&lt;script type="module"&gt;
+  const res = await fetch("{{$.BaseURL}}/api/v1/values/{{$.SampleKey}}", {
+    headers: { Authorization: "Bearer {{.Key}}" },
+  });
+  const value = await res.json();
+  document.getElementById("value").textContent = JSON.stringify(value, null, 2);
+&lt;/script&gt;</pre>
+<pre data-panel="curl" hidden># one value
+curl -H "Authorization: Bearer {{.Key}}" \
+  {{$.BaseURL}}/api/v1/values/{{$.SampleKey}}
+
+# every value in the store
+curl -H "Authorization: Bearer {{.Key}}" \
+  {{$.BaseURL}}/api/v1/values</pre>
+<pre data-panel="python" hidden>import json
+import urllib.request
+
+req = urllib.request.Request(
+    "{{$.BaseURL}}/api/v1/values/{{$.SampleKey}}",
+    headers={"Authorization": "Bearer {{.Key}}"},
+)
+with urllib.request.urlopen(req) as res:
+    value = json.load(res)</pre>
+<pre data-panel="go" hidden>req, _ := http.NewRequest("GET", "{{$.BaseURL}}/api/v1/values/{{$.SampleKey}}", nil)
+req.Header.Set("Authorization", "Bearer {{.Key}}")
+
+res, err := http.DefaultClient.Do(req)
+if err != nil {
+	log.Fatal(err)
+}
+defer res.Body.Close()
+
+var value any
+if err := json.NewDecoder(res.Body).Decode(&amp;value); err != nil {
+	log.Fatal(err)
+}</pre>
+</div>
+<script>
+(() => {
+  const root = document.getElementById("usage");
+  const tabs = root.querySelectorAll("[data-tab]");
+  const panels = root.querySelectorAll("[data-panel]");
+  const show = (name) => {
+    tabs.forEach(t => t.setAttribute("aria-selected", t.dataset.tab === name));
+    panels.forEach(p => p.hidden = p.dataset.panel !== name);
+    try { localStorage.setItem("pocketkv-usage-tab", name); } catch {}
+  };
+  tabs.forEach(t => t.onclick = () => show(t.dataset.tab));
+  try { const saved = localStorage.getItem("pocketkv-usage-tab"); if (saved && root.querySelector(`[data-tab="${saved}"]`)) show(saved); } catch {}
+  root.querySelector(".copy").onclick = (e) => {
+    navigator.clipboard.writeText(root.querySelector("[data-panel]:not([hidden])").textContent);
+    e.target.textContent = "Copied";
+    setTimeout(() => e.target.textContent = "Copy", 1500);
+  };
+})();
+</script>
+<p class="muted">Full reference: <a href="/openapi.yaml">openapi.yaml</a></p>
+{{end}}
+{{else}}
+<p class="muted">No API keys yet. Create one to read this store from your sites.</p>
+{{end}}
+
+<h2>Danger zone</h2>
+<form method="post" action="/stores/{{.Store.Name}}/delete" onsubmit="return confirm('Delete store {{.Store.Name}} with all its values and keys?')">
+  <button class="danger" type="submit" style="border-color:currentColor">Delete store</button>
+</form>
+{{end}}

@@ -1,0 +1,23 @@
+{{define "content"}}
+<h1>Stores</h1>
+{{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+<form method="post" action="/stores" class="row">
+  <input type="text" name="name" placeholder="new-store-name" required autocomplete="off">
+  <button class="primary" type="submit">Create store</button>
+</form>
+{{if .Stores}}
+<table>
+  <tr><th>Name</th><th>Values</th><th>API keys</th><th>Created</th></tr>
+  {{range .Stores}}
+  <tr>
+    <td><a href="/stores/{{.Name}}">{{.Name}}</a></td>
+    <td>{{.Values}}</td>
+    <td>{{.APIKeys}}</td>
+    <td class="muted">{{.CreatedAt.Format "2006-01-02"}}</td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="muted">No stores yet.</p>
+{{end}}
+{{end}}

@@ -1,0 +1,45 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}pocketkv{{end}}</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#6b6b6b; --line:#e3e3e3; --accent:#2f6fde; --danger:#c62828; --code:#f4f4f4; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#151515; --fg:#e8e8e8; --muted:#999; --line:#2c2c2c; --accent:#6ea0ff; --danger:#ef6461; --code:#1f1f1f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--line); }
+  header .brand { font-weight:700; color:var(--fg); text-decoration:none; }
+  main { max-width:960px; margin:0 auto; padding:20px; }
+  a { color:var(--accent); }
+  h1 { font-size:1.4rem; margin:0 0 16px; } h2 { font-size:1.1rem; margin:32px 0 12px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--muted); font-weight:500; font-size:.85rem; }
+  td.actions { text-align:right; white-space:nowrap; }
+  code, pre { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.85rem; background:var(--code); border-radius:4px; }
+  code { padding:1px 4px; } pre { padding:12px; overflow-x:auto; }
+  .preview { color:var(--muted); max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  form.inline { display:inline; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0; }
+  input[type=text] { padding:7px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; min-width:240px; }
+  button, .button { padding:7px 14px; border:1px solid var(--line); border-radius:6px; background:var(--code); color:var(--fg); font:inherit; cursor:pointer; text-decoration:none; display:inline-block; }
+  button.primary, .button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.danger { color:var(--danger); background:none; border-color:transparent; padding:4px 8px; }
+  .error { color:var(--danger); }
+  .muted { color:var(--muted); }
+  .tablist { display:flex; gap:2px; border-bottom:1px solid var(--line); }
+  .tablist button { background:none; border:none; border-bottom:2px solid transparent; border-radius:0; padding:6px 12px; color:var(--muted); }
+  .tablist button[aria-selected=true] { color:var(--fg); border-bottom-color:var(--accent); }
+  .tablist .copy { margin-left:auto; }
+  .tabs pre { margin-top:0; border-top-left-radius:0; border-top-right-radius:0; }
+  .crumbs { color:var(--muted); margin:0 0 8px; }
+</style>
+{{block "head" .}}{{end}}
+</head>
+<body>
+<header><a class="brand" href="/">pocketkv</a><a href="/openapi.yaml">API spec</a></header>
+<main>{{template "content" .}}</main>
+</body>
+</html>{{end}}

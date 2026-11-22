@@ -1,0 +1,72 @@
+{{define "title"}}{{if .IsNew}}New value{{else}}{{.Key}}{{end}} · {{.Store}} · pocketkv{{end}}
+{{define "head"}}
+<script src="https://cdn.jsdelivr.net/npm/ace-builds@1.36.5/src-min-noconflict/ace.js"></script>
+<style>
+  #editor { height:65vh; border:1px solid var(--line); border-radius:6px; }
+  #value { width:100%; height:65vh; font-family:ui-monospace, Menlo, monospace; font-size:14px; }
+</style>
+{{end}}
+{{define "content"}}
+<p class="crumbs"><a href="/">Stores</a> / <a href="/stores/{{.Store}}">{{.Store}}</a> /</p>
+<form method="post" action="/stores/{{.Store}}/value" id="form">
+  {{if .IsNew}}
+  <input type="hidden" name="new" value="1">
+  <div class="row"><input type="text" name="key" value="{{.Key}}" placeholder="key, e.g. site.hero" required autofocus autocomplete="off"></div>
+  {{else}}
+  <h1><code>{{.Key}}</code></h1>
+  <input type="hidden" name="key" value="{{.Key}}">
+  {{end}}
+  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+  <div id="editor" hidden></div>
+  <textarea name="value" id="value" spellcheck="false">{{.Value}}</textarea>
+  <div class="row">
+    <button class="primary" type="submit">Save</button>
+    <button type="button" id="format">Format</button>
+    <span class="muted">⌘/Ctrl+S saves</span>
+    <span id="status" class="error"></span>
+  </div>
+</form>
+<script>
+(() => {
+  const form = document.getElementById("form");
+  const textarea = document.getElementById("value");
+  const status = document.getElementById("status");
+  let get = () => textarea.value, set = (v) => { textarea.value = v; };
+
+  // Use Ace when the CDN is reachable; otherwise the plain textarea still works.
+  if (window.ace) {
+    const el = document.getElementById("editor");
+    el.hidden = false;
+    textarea.hidden = true;
+    ace.config.set("basePath", "https://cdn.jsdelivr.net/npm/ace-builds@1.36.5/src-min-noconflict/");
+    const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const editor = ace.edit(el, {
+      mode: "ace/mode/json",
+      theme: dark ? "ace/theme/tomorrow_night" : "ace/theme/chrome",
+      value: textarea.value,
+      tabSize: 2, useSoftTabs: true, showPrintMargin: false, fontSize: 14,
+    });
+    editor.commands.addCommand({
+      name: "save", bindKey: { win: "Ctrl-S", mac: "Command-S" },
+      exec: () => form.requestSubmit(),
+    });
+    editor.focus();
+    get = () => editor.getValue();
+    set = (v) => editor.setValue(v, -1);
+  }
+
+  const parse = () => {
+    try { status.textContent = ""; return [JSON.parse(get()), true]; }
+    catch (e) { status.textContent = "Invalid JSON: " + e.message; return [null, false]; }
+  };
+  document.getElementById("format").onclick = () => {
+    const [v, ok] = parse();
+    if (ok) set(JSON.stringify(v, null, 2));
+  };
+  form.addEventListener("submit", (e) => {
+    if (!parse()[1]) { e.preventDefault(); return; }
+    textarea.value = get();
+  });
+})();
+</script>
+{{end}}

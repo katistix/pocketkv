@@ -1,0 +1,94 @@
+openapi: 3.1.0
+info:
+  title: pocketkv
+  version: 1.0.0
+  description: |
+    Read-only API for a pocketkv store.
+
+    Each API key belongs to exactly one store, so the key alone decides which
+    store you read from. Keys are read-only and safe to embed in static sites.
+
+    Send the key as a bearer token: `Authorization: Bearer <key>`.
+
+    Values are JSON documents and are returned exactly as stored.
+    All endpoints send `Access-Control-Allow-Origin: *`.
+
+    Example:
+    ```js
+    const res = await fetch("https://kv.example.com/api/v1/values/hero", {
+      headers: { Authorization: "Bearer pkv_..." },
+    });
+    const hero = await res.json();
+    ```
+servers:
+  - url: /
+security:
+  - bearer: []
+paths:
+  /api/v1/values:
+    get:
+      operationId: listValues
+      summary: Get every value in the store
+      description: Returns one JSON object mapping each key to its value.
+      responses:
+        "200":
+          description: All values in the store, keyed by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+              example:
+                hero: { "title": "Hello", "subtitle": "World" }
+                open: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/values/{key}:
+    get:
+      operationId: getValue
+      summary: Get one value
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: The value's key.
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9_][A-Za-z0-9._:-]{0,255}$"
+      responses:
+        "200":
+          description: The stored JSON value (any JSON type).
+          content:
+            application/json:
+              schema: {}
+              example: { "title": "Hello", "subtitle": "World" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The store has no value under this key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example: { "error": "key not found" }
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: A pocketkv API key, e.g. `pkv_...`.
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+  responses:
+    Unauthorized:
+      description: The API key is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example: { "error": "missing or invalid API key" }
