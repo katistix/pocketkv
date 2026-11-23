@@ -1,0 +1,16 @@
+{{define "title"}}Sign in · pocketkv{{end}}
+{{define "header"}}{{end}}
+{{define "content"}}
+<form class="login" method="post" action="/login">
+  <h1>pocketkv</h1>
+  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+  <input type="hidden" name="next" value="{{.Next}}">
+  <label>Username
+    <input type="text" name="user" value="{{.User}}" autocomplete="username" required {{if not .User}}autofocus{{end}}>
+  </label>
+  <label>Password
+    <input type="password" name="password" autocomplete="current-password" required {{if .User}}autofocus{{end}}>
+  </label>
+  <button class="primary" type="submit">Sign in</button>
+</form>
+{{end}}

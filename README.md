@@ -2,7 +2,7 @@
 
 Simple minimal self hostable kv datastore you can use to serve dynamic read-only values to static sites.
 
-- **Dashboard** (HTTP Basic Auth): create stores, edit JSON values in a code editor, create read-only API keys.
+- **Dashboard** (login page, credentials from `.env`): create stores, edit JSON values in a code editor, create read-only API keys.
 - **API** (read-only, CORS `*`): read one value or all values of a store with an API key. Keys are safe to embed in static sites.
 - Go standard library only. All data lives in one JSON file.
 
@@ -25,7 +25,9 @@ Open http://localhost:8080.
 
 Real environment variables take precedence over `.env`. Back up by copying `DATA_FILE`.
 
-Basic Auth sends the password with every request, so put the dashboard behind HTTPS (e.g. a reverse proxy) if it is reachable from outside your network.
+Sign in at `/login` with the credentials from `.env`. Sessions last 30 days, or until you sign out or the server restarts. Wrong passwords are slowed to about one try per second.
+
+Without HTTPS, the password and session cookie travel unencrypted, so put the dashboard behind HTTPS (e.g. a reverse proxy) if it is reachable from outside your network.
 
 ## Deploy with Docker
 

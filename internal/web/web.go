@@ -1,11 +1,9 @@
 // Package web serves the dashboard: server-rendered html/template pages
-// behind HTTP Basic Auth.
+// behind a login page with a session cookie.
 package web
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"crypto/subtle"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -25,14 +23,15 @@ const maxFormBytes = 5 << 20 // 5 MiB per request
 
 type server struct {
 	db    *store.DB
+	auth  *auth
 	pages map[string]*template.Template
 }
 
-// New returns the dashboard handler, protected by Basic Auth and by
-// cross-origin request protection on every non-GET request.
+// New returns the dashboard handler. Every page except /login needs a
+// signed-in session, and every non-GET request gets cross-origin protection.
 func New(db *store.DB, user, password string) http.Handler {
-	s := &server{db: db, pages: map[string]*template.Template{}}
-	for _, p := range []string{"index", "store", "value"} {
+	s := &server{db: db, auth: newAuth(user, password), pages: map[string]*template.Template{}}
+	for _, p := range []string{"login", "index", "store", "value"} {
 		s.pages[p] = template.Must(template.ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html"))
 	}
 
@@ -46,27 +45,16 @@ func New(db *store.DB, user, password string) http.Handler {
 	mux.HandleFunc("POST /stores/{store}/value/delete", s.deleteValue)
 	mux.HandleFunc("POST /stores/{store}/keys", s.createAPIKey)
 	mux.HandleFunc("POST /stores/{store}/keys/delete", s.deleteAPIKey)
+	mux.HandleFunc("POST /logout", s.logout)
 
-	var h http.Handler = mux
+	root := http.NewServeMux()
+	root.HandleFunc("GET /login", s.loginPage)
+	root.HandleFunc("POST /login", s.login)
+	root.Handle("/", s.auth.require(mux))
+
+	var h http.Handler = root
 	h = http.NewCrossOriginProtection().Handler(h)
-	h = http.MaxBytesHandler(h, maxFormBytes)
-	return basicAuth(user, password, h)
-}
-
-func basicAuth(user, password string, next http.Handler) http.Handler {
-	wantUser, wantPass := sha256.Sum256([]byte(user)), sha256.Sum256([]byte(password))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, p, ok := r.BasicAuth()
-		gotUser, gotPass := sha256.Sum256([]byte(u)), sha256.Sum256([]byte(p))
-		userOK := subtle.ConstantTimeCompare(gotUser[:], wantUser[:]) == 1
-		passOK := subtle.ConstantTimeCompare(gotPass[:], wantPass[:]) == 1
-		if !ok || !userOK || !passOK {
-			w.Header().Set("WWW-Authenticate", `Basic realm="pocketkv", charset="UTF-8"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	return http.MaxBytesHandler(h, maxFormBytes)
 }
 
 // --- pages ---
@@ -222,6 +210,8 @@ func (s *server) render(w http.ResponseWriter, status int, page string, data any
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Frame-Options", "DENY")
 	w.WriteHeader(status)
 	buf.WriteTo(w)
 }
@@ -241,7 +231,7 @@ func redirect(w http.ResponseWriter, r *http.Request, to string) {
 
 func baseURL(r *http.Request) string {
 	scheme := "http"
-	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+	if isHTTPS(r) {
 		scheme = "https"
 	}
 	return scheme + "://" + r.Host

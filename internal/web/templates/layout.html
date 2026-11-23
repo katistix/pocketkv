@@ -23,7 +23,7 @@
   .preview { color:var(--muted); max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   form.inline { display:inline; }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0; }
-  input[type=text] { padding:7px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; min-width:240px; }
+  input[type=text], input[type=password] { padding:7px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; min-width:240px; }
   button, .button { padding:7px 14px; border:1px solid var(--line); border-radius:6px; background:var(--code); color:var(--fg); font:inherit; cursor:pointer; text-decoration:none; display:inline-block; }
   button.primary, .button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
   button.danger { color:var(--danger); background:none; border-color:transparent; padding:4px 8px; }
@@ -34,12 +34,22 @@
   .tablist button[aria-selected=true] { color:var(--fg); border-bottom-color:var(--accent); }
   .tablist .copy { margin-left:auto; }
   .tabs pre { margin-top:0; border-top-left-radius:0; border-top-right-radius:0; }
+  .login { max-width:340px; margin:12vh auto 0; }
+  .login h1 { text-align:center; margin-bottom:24px; }
+  .login label { display:block; margin-bottom:14px; font-size:.9rem; color:var(--muted); }
+  .login input { display:block; width:100%; min-width:0; margin-top:4px; color:var(--fg); }
+  .login button { width:100%; padding:9px; margin-top:6px; }
   .crumbs { color:var(--muted); margin:0 0 8px; }
 </style>
 {{block "head" .}}{{end}}
 </head>
 <body>
-<header><a class="brand" href="/">pocketkv</a><a href="/openapi.yaml">API spec</a></header>
+{{block "header" .}}<header>
+  <a class="brand" href="/">pocketkv</a>
+  <nav class="row" style="margin:0"><a href="/openapi.yaml">API spec</a>
+    <form method="post" action="/logout" class="inline"><button type="submit">Sign out</button></form>
+  </nav>
+</header>{{end}}
 <main>{{template "content" .}}</main>
 </body>
 </html>{{end}}
